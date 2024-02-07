@@ -1,0 +1,20 @@
+[package]
+name = "deno_terminal"
+version = "0.0.1"
+edition = "2021"
+description = "Terminal styling and other functionality used across Deno"
+repository = "https://github.com/denoland/deno_terminal"
+documentation = "https://docs.rs/deno_terminal"
+authors = ["the Deno authors"]
+license = "MIT"
+
+[features]
+default = ["colors"]
+colors = ["termcolor"]
+
+[dependencies]
+once_cell = "1.17.1"
+termcolor = { version = "1.1.3", optional = true }
+
+[dev-dependencies]
+pretty_assertions = "1.0.0"
