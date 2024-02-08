@@ -3,6 +3,7 @@
 use once_cell::sync::Lazy;
 use std::fmt;
 use std::fmt::Write as _;
+use std::sync::atomic::AtomicBool;
 use termcolor::Ansi;
 use termcolor::Color::Ansi256;
 use termcolor::Color::Black;
@@ -21,15 +22,39 @@ use termcolor::BufferWriter;
 #[cfg(windows)]
 use termcolor::ColorChoice;
 
-static NO_COLOR: Lazy<bool> = Lazy::new(|| {
-  std::env::var_os("NO_COLOR")
-    .map(|v| !v.is_empty())
-    .unwrap_or(false)
+static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
+  #[cfg(wasm)]
+  {
+    // Don't use color by default on Wasm targets because
+    // it's not always possible to read the `NO_COLOR` env var.
+    //
+    // Instead the user can opt-in via `set_use_color`.
+    AtomicBool::new(false)
+  }
+  #[cfg(not(wasm))]
+  {
+    let no_color = std::env::var_os("NO_COLOR")
+      .map(|v| !v.is_empty())
+      .unwrap_or(false);
+    AtomicBool::new(!no_color)
+  }
 });
 
-/// Gets if the NO_COLOR environment variable is set.
+/// Gets whether color should be used in the output.
+///
+/// This is informed via the `USE_COLOR` environment variable
+/// or if `set_use_color` has been set to true.
+///
+/// On Wasm targets, use `set_use_color(true)` to enable color output.
 pub fn use_color() -> bool {
-  !(*NO_COLOR)
+  USE_COLOR.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Sets whether color should be used in the output.
+///
+/// This overrides the default value set via the `NO_COLOR` env var.
+pub fn set_use_color(use_color: bool) {
+  USE_COLOR.store(use_color, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Enables ANSI color output on Windows. This is a no-op on other platforms.
