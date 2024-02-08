@@ -25,7 +25,9 @@ use termcolor::ColorChoice;
 static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
   #[cfg(wasm)]
   {
-    // Don't use color by default on Wasm targets.
+    // Don't use color by default on Wasm targets because
+    // it's not always possible to read the `NO_COLOR` env var.
+    //
     // Instead the user can opt-in via `set_use_color`.
     AtomicBool::new(false)
   }
