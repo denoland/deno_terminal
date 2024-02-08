@@ -48,6 +48,9 @@ pub fn use_color() -> bool {
   USE_COLOR.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Sets whether color should be used in the output.
+///
+/// This overrides the default value set via the `NO_COLOR` env var.
 pub fn set_use_color(use_color: bool) {
   USE_COLOR.store(use_color, std::sync::atomic::Ordering::Relaxed);
 }
