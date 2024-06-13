@@ -23,6 +23,14 @@ use termcolor::BufferWriter;
 use termcolor::ColorChoice;
 
 static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
+  #[cfg(non_tty)]
+  {
+    // Don't use color, by default, when not in a TTY, because text becomes
+    // illegible when redirected to a file or another program.
+    //
+    // Instead the user can opt-in via `set_use_color`.
+    AtomicBool::new(false)
+  }
   #[cfg(wasm)]
   {
     // Don't use color by default on Wasm targets because
@@ -45,7 +53,8 @@ static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
 /// This is informed via the `USE_COLOR` environment variable
 /// or if `set_use_color` has been set to true.
 ///
-/// On Wasm targets, use `set_use_color(true)` to enable color output.
+/// On Wasm targets or non-TTY environments, use `set_use_color(true)` to enable
+/// color output.
 pub fn use_color() -> bool {
   USE_COLOR.load(std::sync::atomic::Ordering::Relaxed)
 }
