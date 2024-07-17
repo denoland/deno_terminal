@@ -40,6 +40,95 @@ static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
   }
 });
 
+#[derive(Clone, Copy, Debug)]
+pub enum ColorLevel {
+  None,
+  Ansi,
+  Ansi256,
+  TrueColor,
+}
+
+static COLOR_LEVEL: Lazy<ColorLevel> = Lazy::new(|| {
+  #[cfg(wasm)]
+  {
+    // Don't use color by default on Wasm targets because
+    // it's not always possible to read env vars.
+    //
+    // Instead the user can opt-in via `set_use_color`.
+    ColorLevel::None
+  }
+  #[cfg(not(wasm))]
+  {
+    let no_color = std::env::var_os("NO_COLOR")
+      .map(|v| !v.is_empty())
+      .unwrap_or(false);
+
+    if no_color {
+      return ColorLevel::None;
+    }
+
+    let mut term = "dumb".to_string();
+    if let Some(term_value) = std::env::var_os("TERM") {
+      if term_value == "dumb" {
+        return ColorLevel::None;
+      }
+
+      if let Some(term_value) = term_value.to_str() {
+        term = term_value.to_string();
+      }
+    }
+
+    #[cfg(platform = "windows")]
+    {
+      // TODO: Older versions of windows only support ansi colors,
+      // starting with Windows 10 build 10586 ansi256 is supported
+
+      // TrueColor support landed with Windows 10 build 14931,
+      // see https://devblogs.microsoft.com/commandline/24-bit-color-in-the-windows-console/
+      return ColorLevel::TrueColor;
+    }
+
+    if std::env::var_os("TMUX").is_some() {
+      return ColorLevel::Ansi;
+    }
+
+    if let Some(ci) = std::env::var_os("CI") {
+      if let Some(ci_value) = ci.to_str() {
+        if matches!(
+          ci_value,
+          "TRAVIS"
+            | "CIRCLECI"
+            | "APPVEYOR"
+            | "GITLAB_CI"
+            | "GITHUB_ACTIONS"
+            | "BUILDKITE"
+            | "DRONE"
+        ) {
+          return ColorLevel::Ansi256;
+        }
+      } else {
+        return ColorLevel::Ansi;
+      }
+    }
+
+    if let Some(color_term) = std::env::var_os("COLORTERM") {
+      if color_term == "truecolor" || color_term == "24bit" {
+        return ColorLevel::TrueColor;
+      }
+    }
+
+    if term.ends_with("-256color") || term.ends_with("256") {
+      return ColorLevel::Ansi256;
+    }
+
+    ColorLevel::Ansi
+  }
+});
+
+pub fn get_color_level() -> ColorLevel {
+  *COLOR_LEVEL
+}
+
 /// Gets whether color should be used in the output.
 ///
 /// This is informed via the `USE_COLOR` environment variable
