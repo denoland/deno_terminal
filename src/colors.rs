@@ -53,8 +53,6 @@ static COLOR_LEVEL: Lazy<ColorLevel> = Lazy::new(|| {
   {
     // Don't use color by default on Wasm targets because
     // it's not always possible to read env vars.
-    //
-    // Instead the user can opt-in via `set_use_color`.
     ColorLevel::None
   }
   #[cfg(not(wasm))]
