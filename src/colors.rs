@@ -22,6 +22,12 @@ use termcolor::BufferWriter;
 #[cfg(windows)]
 use termcolor::ColorChoice;
 
+static FORCE_COLOR: Lazy<bool> = Lazy::new(|| {
+  std::env::var_os("FORCE_COLOR")
+    .map(|v| !v.is_empty())
+    .unwrap_or(false)
+});
+
 static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
   #[cfg(wasm)]
   {
@@ -33,6 +39,10 @@ static USE_COLOR: Lazy<AtomicBool> = Lazy::new(|| {
   }
   #[cfg(not(wasm))]
   {
+    if *FORCE_COLOR {
+      return AtomicBool::new(true);
+    }
+
     let no_color = std::env::var_os("NO_COLOR")
       .map(|v| !v.is_empty())
       .unwrap_or(false);
@@ -57,17 +67,21 @@ static COLOR_LEVEL: Lazy<ColorLevel> = Lazy::new(|| {
   }
   #[cfg(not(wasm))]
   {
-    let no_color = std::env::var_os("NO_COLOR")
-      .map(|v| !v.is_empty())
-      .unwrap_or(false);
+    // If FORCE_COLOR is not set, check for NO_COLOR
+    if !*FORCE_COLOR {
+      let no_color = std::env::var_os("NO_COLOR")
+        .map(|v| !v.is_empty())
+        .unwrap_or(false);
 
-    if no_color {
-      return ColorLevel::None;
+      if no_color {
+        return ColorLevel::None;
+      }
     }
 
     let mut term = "dumb".to_string();
     if let Some(term_value) = std::env::var_os("TERM") {
-      if term_value == "dumb" {
+      // If FORCE_COLOR is set, ignore the "dumb" terminal check
+      if term_value == "dumb" && !*FORCE_COLOR {
         return ColorLevel::None;
       }
 
@@ -129,8 +143,10 @@ pub fn get_color_level() -> ColorLevel {
 
 /// Gets whether color should be used in the output.
 ///
-/// This is informed via the `USE_COLOR` environment variable
-/// or if `set_use_color` has been set to true.
+/// This is determined by:
+/// - The `FORCE_COLOR` environment variable (if set, enables color regardless of other settings)
+/// - The `NO_COLOR` environment variable (if set and FORCE_COLOR is not set, disables color)
+/// - If `set_use_color` has been called to explicitly set the color state
 ///
 /// On Wasm targets, use `set_use_color(true)` to enable color output.
 pub fn use_color() -> bool {
@@ -139,7 +155,7 @@ pub fn use_color() -> bool {
 
 /// Sets whether color should be used in the output.
 ///
-/// This overrides the default value set via the `NO_COLOR` env var.
+/// This overrides the default values set via the `FORCE_COLOR` and `NO_COLOR` env vars.
 pub fn set_use_color(use_color: bool) {
   USE_COLOR.store(use_color, std::sync::atomic::Ordering::Relaxed);
 }
