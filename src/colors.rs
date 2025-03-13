@@ -153,6 +153,11 @@ pub fn use_color() -> bool {
   USE_COLOR.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Whether the `FORCE_COLOR` environment variable is set
+pub fn force_color() -> bool {
+  *FORCE_COLOR
+}
+
 /// Sets whether color should be used in the output.
 ///
 /// This overrides the default values set via the `FORCE_COLOR` and `NO_COLOR` env vars.
