@@ -1,6 +1,6 @@
 [package]
 name = "deno_terminal"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Terminal styling and other functionality used across Deno"
 repository = "https://github.com/denoland/deno_terminal"
