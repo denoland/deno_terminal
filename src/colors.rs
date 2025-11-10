@@ -342,6 +342,12 @@ pub fn gray<'a, S: fmt::Display + 'a>(s: S) -> Style<S> {
   style(s, style_spec)
 }
 
+pub fn dimmed_gray<'a, S: fmt::Display + 'a>(s: S) -> Style<S> {
+  let mut style_spec = ColorSpec::new();
+  style_spec.set_dimmed(true).set_fg(Some(Ansi256(245)));
+  style(s, style_spec)
+}
+
 pub fn intense_blue<'a, S: fmt::Display + 'a>(s: S) -> Style<S> {
   let mut style_spec = ColorSpec::new();
   style_spec.set_fg(Some(Blue)).set_intense(true);
